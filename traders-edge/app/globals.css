@@ -1,0 +1,5 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #0d1526; color: #eef2f8; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; display: inline-block; }
