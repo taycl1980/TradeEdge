@@ -1,10 +1,4 @@
 /** @type {import('next').NextConfig} */
-const isDev = process.env.NODE_ENV !== 'production';
-
-const scriptSrc = isDev
-  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval';"
-  : "script-src 'self' 'unsafe-inline';";
-
 const nextConfig = {
   reactStrictMode: true,
   async headers() {
@@ -20,7 +14,7 @@ const nextConfig = {
           {
             key: 'Content-Security-Policy',
             value:
-              `default-src 'self'; img-src 'self' data: blob:; ${scriptSrc} style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; connect-src 'self' *.supabase.co api.stripe.com`,
+              "default-src 'self'; img-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; connect-src 'self' *.supabase.co api.stripe.com",
           },
         ],
       },

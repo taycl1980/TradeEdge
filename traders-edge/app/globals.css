@@ -1,5 +1,41 @@
+/* Trader's Edge — Claude-style design foundation
+   Warm off-white surfaces, near-black ink, restrained accents.
+   These CSS variables flow into the inline styles via the
+   `var(--name)` references in each component. */
+
+:root {
+  /* Warm off-white surfaces — paper feel */
+  --bg: #faf7f2;
+  --surface: #fffdf9;
+  --surface-2: #f4efe6;
+  --surface-3: #ede6d8;
+  --line: rgba(60, 40, 15, 0.08);
+  --line-2: rgba(60, 40, 15, 0.16);
+
+  /* Near-black ink, greys for hierarchy */
+  --ink: #1a1816;
+  --ink-dim: #5d564d;
+  --ink-faint: #8f8678;
+
+  /* Restrained accents — state, not decoration */
+  --teal: #0a7c5f;
+  --teal-bg: rgba(10, 124, 95, 0.08);
+  --teal-line: rgba(10, 124, 95, 0.22);
+  --amber: #a26a18;
+  --amber-bg: rgba(162, 106, 24, 0.09);
+  --coral: #b04a25;
+  --coral-bg: rgba(176, 74, 37, 0.08);
+  --purple: #6759c6;
+  --purple-bg: rgba(103, 89, 198, 0.08);
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { background: #0d1526; color: #eef2f8; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
 a { color: inherit; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 1s linear infinite; display: inline-block; }
