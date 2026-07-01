@@ -21,6 +21,7 @@ create table if not exists public.profiles (
   onboarding_completed_at timestamptz,        -- null = route to edge builder
   welcome_email_sent_at timestamptz,          -- null = welcome email not yet dispatched
   cap_warning_sent_at timestamptz,            -- null = no cap-warning email this cycle
+  trade_prefs jsonb not null default '{}'::jsonb,  -- last-used instrument, risk %, balance
   last_seen_at timestamptz,
   created_at timestamptz not null default now(),
   deleted_at timestamptz
@@ -146,6 +147,16 @@ create table if not exists public.trades (
   emotion text,
   notes_right text,
   notes_wrong text,
+
+  -- Integrity model (v3)
+  status text not null default 'closed' check (status in ('open','closed','locked','superseded')),
+  closed_at timestamptz,
+  locked_at timestamptz,
+  correction_of_id uuid references public.trades(id),
+  superseded_by_id uuid references public.trades(id),
+  hidden boolean not null default false,
+  hidden_reason text,
+  audit_log jsonb not null default '[]'::jsonb,
 
   source_analysis_id uuid references public.analyses(id),
   created_at timestamptz not null default now(),
