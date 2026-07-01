@@ -100,8 +100,8 @@ export async function POST(req: NextRequest) {
   // 9) Call Claude with the chart + the server-built prompt.
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1200,
+      model: 'claude-sonnet-5',
+      max_tokens: 2048,
       messages: [
         {
           role: 'user',
@@ -113,6 +113,22 @@ export async function POST(req: NextRequest) {
       ],
     });
 
+    // If Claude ran out of room before finishing, the JSON will be
+    // truncated and unparseable. Detect this explicitly rather than
+    // waiting for JSON.parse to fail blind — gives a much clearer
+    // signal in logs and lets us tell the user to just retry instead
+    // of showing a generic parse error.
+    if (message.stop_reason === 'max_tokens') {
+      console.error('[analyze] truncated at max_tokens', {
+        userId: user.id,
+        outputTokens: message.usage?.output_tokens,
+      });
+      return NextResponse.json(
+        { error: 'response_truncated', message: 'The analysis ran longer than expected — please try again.' },
+        { status: 500 }
+      );
+    }
+
     const text = message.content
       .map((b) => (b.type === 'text' ? b.text : ''))
       .join('')
@@ -123,7 +139,14 @@ export async function POST(req: NextRequest) {
     try {
       parsed = JSON.parse(text);
     } catch {
-      return NextResponse.json({ error: 'Could not parse analysis', raw: text }, { status: 502 });
+      // Log the raw text server-side so we can see exactly what shape
+      // broke parsing, without exposing potentially-large raw model
+      // output back to the client in production.
+      console.error('[analyze] JSON parse failed', { userId: user.id, rawPreview: text.slice(0, 500) });
+      return NextResponse.json(
+        { error: 'parse_failed', message: 'Could not read the analysis — please try again.' },
+        { status: 500 }
+      );
     }
 
     // Recompute the verdict server-side from the trusted thresholds rather
