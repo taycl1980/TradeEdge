@@ -167,12 +167,6 @@ ${gate}
 
 Assess only what is actually visible in the image. If unclear, do NOT award the point and mark the gate item "unclear". Be conservative and honest.
 
-BE CONCISE — this keeps the response reliable and fast to generate:
-- "read": 1-2 sentences max.
-- Each factor/gate "note": under 12 words. Fragments are fine ("Clean sweep of prior low.").
-- "verdictReason": 1 sentence.
-- "cautions": at most 2 items, each under 10 words.
-
 Respond ONLY with valid JSON, no markdown:
 {"read":"","factors":[{"label":"","met":true,"points":0,"note":""}],"score":0,"maxScore":${max},"gate":[{"rule":"","status":"pass|fail|unclear","note":""}],"verdict":"trade-full|trade-reduced|skip","verdictReason":"","cautions":[""],"meta":{"instrument":"","timeframe":"","bias":""}}
 Thresholds: score>=${edge.full} => "trade-full"; score>=${edge.min} => "trade-reduced"; else "skip".`;

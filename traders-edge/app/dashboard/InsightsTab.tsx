@@ -85,7 +85,7 @@ export default function InsightsTab({ edge }: { edge: any }) {
         <Metric label="Win rate" value={stats.n ? `${Math.round(stats.wr * 100)}%` : '—'} sub={`${stats.wins}W / ${stats.losses}L / ${stats.bes}BE`} />
         <Metric label="Profit factor" value={stats.n ? (stats.pf === Infinity ? '∞' : stats.pf.toFixed(2)) : '—'} sub="target ≥ 1.5" />
         <Metric label="Compliance" value={stats.n ? `${Math.round(stats.cr * 100)}%` : '—'} sub="target 100%" />
-        <Metric label="Total P&L" value={stats.n ? `${stats.pnl >= 0 ? '+' : ''}${stats.pnl.toFixed(0)} p` : '—'} sub={stats.pnlUsd ? `${stats.pnlUsd >= 0 ? '+$' : '-$'}${Math.abs(stats.pnlUsd).toFixed(0)}` : ''} />
+        <Metric label="Total P&L" value={stats.n ? `${stats.pnl >= 0 ? '+' : ''}${stats.pnl.toFixed(2)} p` : '—'} sub={stats.pnlUsd ? `${stats.pnlUsd >= 0 ? '+$' : '-$'}${Math.abs(stats.pnlUsd).toFixed(2)}` : ''} />
         <Metric label="Avg R:R" value={stats.avgLoss ? `${(stats.avgWin / stats.avgLoss).toFixed(2)}R` : '—'} sub={`goal ≥ ${edge?.rr || 2}R`} />
       </div>
 
@@ -242,7 +242,7 @@ function ByScore({ trades, edge }: { trades: Trade[]; edge: any }) {
             <div style={{ flex: 1, height: 18, background: '#f4efe6', borderRadius: 4, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${Math.max(2, wr * 100)}%`, background: color, borderRadius: 4, transition: 'width .4s ease' }} />
             </div>
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#1a1816', minWidth: 96, textAlign: 'right' }}>{b.trades}t · {Math.round(wr * 100)}% · {b.pnl >= 0 ? '+' : ''}{b.pnl.toFixed(0)}p</span>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#1a1816', minWidth: 96, textAlign: 'right' }}>{b.trades}t · {Math.round(wr * 100)}% · {b.pnl >= 0 ? '+' : ''}{b.pnl.toFixed(2)}p</span>
           </div>
         );
       })}

@@ -7,7 +7,7 @@ export type TradeRow = {
   edge_version_id: string | null;
   trade_date: string;
   instrument_id: number | null;
-  direction: 'Long' | 'Short' | null;
+  direction: 'Buy' | 'Sell' | null;
   session_id: number | null;
   pattern_id: number | null;
   confluence_score: number | null;

@@ -43,6 +43,35 @@ type Analysis = {
   meta?: { instrument?: string; timeframe?: string; bias?: string };
 };
 
+// Builds the "how an experienced trader would think about this" card from
+// the ACTUAL analysis data returned by Claude — nothing here is canned or
+// simulated. This is intentionally synthesized client-side rather than
+// asking the model for three more free-text fields: it costs zero extra
+// tokens, adds zero truncation risk, and every word traces back to a real
+// factor/gate/caution the model already assessed.
+function buildReasoning(r: Analysis) {
+  const metFactors = r.factors.filter((f) => f.met);
+  const failedGate = r.gate.filter((g) => g.status !== 'pass');
+
+  const whyItWorks = metFactors.length
+    ? metFactors.map((f) => f.note || f.label).join(' ')
+    : 'None of your confluence factors were confirmed on this chart.';
+
+  const whatKillsIt = failedGate.length
+    ? failedGate.map((g) => `${g.rule}${g.note ? ` — ${g.note}` : ''}`).join(' ')
+    : r.cautions?.length
+    ? r.cautions.join(' ')
+    : 'No gate items failed — the main risk is whatever the market does next.';
+
+  const manage = r.verdict === 'trade-full'
+    ? 'Stop sits beyond the structural level your gate already validated, not an arbitrary pip count. Take partials at the first opposing liquidity level, then trail rather than predicting the exact top or bottom.'
+    : r.verdict === 'trade-reduced'
+    ? 'Since this only meets a reduced-size bar, treat the stop the same as a full-size trade but size down accordingly — the structure still needs the same room to be wrong before it\'s actually wrong.'
+    : 'Nothing to manage — this doesn\'t meet your own bar. The discipline here is skipping it, not finding a way to justify it.';
+
+  return { whyItWorks, whatKillsIt, manage };
+}
+
 const V = {
   'trade-full': { ramp: '#0a7c5f', soft: 'rgba(10,124,95,.08)', tx: '#0a7c5f', label: 'Trade — full size', icon: '✓' },
   'trade-reduced': { ramp: '#a26a18', soft: 'rgba(162,106,24,.09)', tx: '#a26a18', label: 'Trade — reduced size', icon: '◐' },
@@ -238,6 +267,33 @@ export default function AnalyzeTab({
               ))}
             </div>
 
+            {(() => {
+              const reasoning = buildReasoning(result);
+              return (
+                <div style={st.reasonCard}>
+                  <div style={st.reasonHead}>
+                    <span style={st.reasonIcon}>◈</span>
+                    <span style={st.reasonTitle}>How an experienced trader would think about this</span>
+                    <span style={st.reasonBadge}>AI REASONING</span>
+                  </div>
+                  <p style={st.reasonBody}>{result.verdictReason}</p>
+                  <div style={st.reasonRow}>
+                    <div style={st.reasonLabel}>Why it works</div>
+                    <div style={st.reasonText}>{reasoning.whyItWorks}</div>
+                  </div>
+                  <div style={st.reasonRow}>
+                    <div style={st.reasonLabel}>What kills it</div>
+                    <div style={st.reasonText}>{reasoning.whatKillsIt}</div>
+                  </div>
+                  <div style={{ ...st.reasonRow, borderBottom: 'none' }}>
+                    <div style={st.reasonLabel}>Manage</div>
+                    <div style={st.reasonText}>{reasoning.manage}</div>
+                  </div>
+                  <p style={st.reasonFoot}>Reasoning, not a recommendation. Based on your own edge — not a signal, not financial advice.</p>
+                </div>
+              );
+            })()}
+
             <button style={st.toggle} onClick={() => setShowDetail(!showDetail)}>
               {showDetail ? '▲ Hide' : '▼ Show'} entry gate &amp; cautions
             </button>
@@ -295,6 +351,16 @@ export default function AnalyzeTab({
 }
 
 const st: Record<string, React.CSSProperties> = {
+  reasonCard: { background: 'linear-gradient(135deg, rgba(103,89,198,.06), rgba(103,89,198,.02))', border: '1px solid rgba(103,89,198,.22)', borderRadius: 12, padding: '16px 18px', margin: '14px 0' },
+  reasonHead: { display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 },
+  reasonIcon: { color: '#6759c6', fontSize: 15 },
+  reasonTitle: { fontSize: 13, fontWeight: 600, color: '#1a1816', flex: 1 },
+  reasonBadge: { fontSize: 9, padding: '2px 7px', borderRadius: 10, background: 'rgba(103,89,198,.14)', color: '#6759c6', fontWeight: 700, letterSpacing: '.04em', fontFamily: "'JetBrains Mono', monospace" },
+  reasonBody: { fontSize: 13, color: '#3a3530', lineHeight: 1.6, marginBottom: 10 },
+  reasonRow: { padding: '9px 0', borderBottom: '1px solid rgba(103,89,198,.12)' },
+  reasonLabel: { fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 700, color: '#6759c6', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 },
+  reasonText: { fontSize: 12.5, color: '#3a3530', lineHeight: 1.55 },
+  reasonFoot: { fontSize: 10.5, color: '#8f8678', fontStyle: 'italic', marginTop: 10, lineHeight: 1.5 },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid rgba(60,40,15,.08)', background: '#fffdf9' },
   brand: { display: 'flex', alignItems: 'center', gap: 10 },
   mark: { width: 34, height: 34, borderRadius: 9, background: 'linear-gradient(135deg,#0a7c5f,#0a5c45)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, color: '#fffdf9' },

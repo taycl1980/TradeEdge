@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
   // but the server is the source of truth.
   const mode: 'open' | 'closed' = body.mode === 'open' ? 'open' : 'closed';
   const symbol: string = String(body.symbol || '').trim().toUpperCase();
-  const direction: Direction = body.direction === 'Short' ? 'Short' : 'Long';
+  const direction: Direction = body.direction === 'Sell' ? 'Sell' : 'Buy';
   const entry = Number(body.entry);
   const stop = Number(body.stop);
   if (!symbol || !entry || !stop) {

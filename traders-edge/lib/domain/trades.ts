@@ -3,7 +3,7 @@
 
 export type TradeStatus = 'open' | 'closed' | 'locked' | 'superseded';
 export type TradeResult = 'Win' | 'Loss' | 'Breakeven';
-export type Direction = 'Long' | 'Short';
+export type Direction = 'Buy' | 'Sell';
 
 // Pip size for the instruments the app supports. JPY pairs are 0.01,
 // metals/oil are larger. Used to convert price differences into pips.
@@ -71,7 +71,7 @@ export function computeTrade(i: CalcInput): CalcOutput {
   let rMultiple: number | null = null;
   let result: TradeResult | null = null;
   if (i.exit && i.entry) {
-    const dirSign = i.direction === 'Long' ? 1 : -1;
+    const dirSign = i.direction === 'Buy' ? 1 : -1;
     pnlPips = ((i.exit - i.entry) / pip) * dirSign;
     if (stopPips > 0) {
       rMultiple = pnlPips / stopPips;

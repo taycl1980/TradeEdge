@@ -50,7 +50,7 @@ export default function TrackTab({ edge, plan }: { edge: any; plan: string }) {
   // Quick log form state
   const [mode, setMode] = useState<'closed' | 'open'>('closed');
   const [symbol, setSymbol] = useState('');
-  const [direction, setDirection] = useState<Direction>('Long');
+  const [direction, setDirection] = useState<Direction>('Buy');
   const [confluence, setConfluence] = useState(3);
   const [entry, setEntry] = useState('');
   const [stop, setStop] = useState('');
@@ -252,8 +252,8 @@ export default function TrackTab({ edge, plan }: { edge: any; plan: string }) {
           <div>
             <label style={S.lbl}>Direction</label>
             <div style={S.dirToggle}>
-              <button onClick={() => setDirection('Long')} style={{ ...S.dirBtn, ...(direction === 'Long' ? S.dirBtnLong : {}) }}>↗ Long</button>
-              <button onClick={() => setDirection('Short')} style={{ ...S.dirBtn, ...(direction === 'Short' ? S.dirBtnShort : {}) }}>↘ Short</button>
+              <button onClick={() => setDirection('Buy')} style={{ ...S.dirBtn, ...(direction === 'Buy' ? S.dirBtnLong : {}) }}>↗ Buy</button>
+              <button onClick={() => setDirection('Sell')} style={{ ...S.dirBtn, ...(direction === 'Sell' ? S.dirBtnShort : {}) }}>↘ Sell</button>
             </div>
           </div>
 
@@ -616,7 +616,7 @@ function TradeModal({
     stop: trade.stop_loss ?? '',
     takeProfit: trade.take_profit ?? '',
     exitPrice: trade.exit_price ?? '',
-    direction: trade.direction || 'Long',
+    direction: trade.direction || 'Buy',
     confluenceScore: trade.confluence_score ?? '',
     compliant: trade.rule_compliant,
     sessionId: trade.session_id ?? '',
@@ -760,7 +760,7 @@ function TradeModal({
                   <div><label style={lbl}>Entry</label><input style={fld} type="number" step="0.00001" value={form.entry} onChange={(e) => set('entry', e.target.value)} /></div>
                   <div><label style={lbl}>Stop</label><input style={fld} type="number" step="0.00001" value={form.stop} onChange={(e) => set('stop', e.target.value)} /></div>
                   <div><label style={lbl}>Take profit</label><input style={fld} type="number" step="0.00001" value={form.takeProfit} onChange={(e) => set('takeProfit', e.target.value)} /></div>
-                  <div><label style={lbl}>Direction</label><select style={fld} value={form.direction} onChange={(e) => set('direction', e.target.value)}><option>Long</option><option>Short</option></select></div>
+                  <div><label style={lbl}>Direction</label><select style={fld} value={form.direction} onChange={(e) => set('direction', e.target.value)}><option>Buy</option><option>Sell</option></select></div>
                 </div>
               </div>
             ) : (
