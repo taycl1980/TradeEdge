@@ -50,7 +50,7 @@ export default async function Home() {
           letterSpacing: '-0.015em',
         }}
       >
-        The discipline engine | Edge builder | AI analysis for traders
+        The discipline engine for prop firm traders
       </h1>
       <p style={{ fontSize: 16, color: '#5d564d', maxWidth: 520, marginBottom: 32, lineHeight: 1.6 }}>
         Define your edge. Score every setup against your own confluence model. Let AI read your

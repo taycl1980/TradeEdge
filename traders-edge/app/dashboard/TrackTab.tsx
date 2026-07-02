@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { computeTrade, detectSession, type Direction } from '@/lib/domain/trades';
+import { computeTrade, detectSession, computeCurrentStreak, computeBestStreak, computeStreakHistory, type Direction } from '@/lib/domain/trades';
 
 type Trade = {
   id: string;
@@ -163,18 +163,12 @@ export default function TrackTab({ edge, plan }: { edge: any; plan: string }) {
     }
   }
 
-  // Streak: consecutive compliant trades from the most recent backwards,
-  // excluding open/hidden/superseded.
-  const streak = useMemo(() => {
-    const eligible = trades
-      .filter((t) => !t.hidden && t.status !== 'superseded' && t.status !== 'open')
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    let s = 0;
-    for (const t of eligible) {
-      if (t.rule_compliant) s++; else break;
-    }
-    return s;
-  }, [trades]);
+  // Streak: three separate metrics computed from real trading date order
+  // (not insert order — see lib/domain/trades.ts for why that matters).
+  const streak = useMemo(() => computeCurrentStreak(trades), [trades]);
+  const bestStreak = useMemo(() => computeBestStreak(trades), [trades]);
+  const streakHistory = useMemo(() => computeStreakHistory(trades), [trades]);
+  const [showStreakHistory, setShowStreakHistory] = useState(false);
 
   const goal = edge?.goal || 30;
   const openTrades = trades.filter((t) => t.status === 'open' && !t.hidden);
@@ -197,13 +191,40 @@ export default function TrackTab({ edge, plan }: { edge: any; plan: string }) {
       <div style={S.streakCard}>
         <div style={S.streakNum}>{streak}</div>
         <div style={{ flex: 1, minWidth: 180 }}>
-          <div style={S.streakLabel}>Compliant streak</div>
+          <div style={S.streakHeadRow}>
+            <div style={S.streakLabel}>Compliant streak</div>
+            {bestStreak > 0 && <span style={S.bestPill}>Best: {bestStreak}</span>}
+          </div>
           <div style={S.barTrack}><div style={{ ...S.barFill, width: `${Math.min((streak / goal) * 100, 100)}%` }} /></div>
           <div style={S.streakSub}>
-            {streak >= goal ? 'Goal reached!' : `${streak} compliant in a row — ${goal - streak} to go (goal: ${goal})`}
+            {streak >= goal ? 'Goal reached — keep going, no ceiling on this.' : `${streak} compliant in a row — ${goal - streak} to go (goal: ${goal})`}
           </div>
         </div>
+        {streakHistory.length > 0 && (
+          <button style={S.historyToggle} onClick={() => setShowStreakHistory(!showStreakHistory)}>
+            {showStreakHistory ? '▲ Hide' : '▾ History'}
+          </button>
+        )}
       </div>
+
+      {showStreakHistory && (
+        <div style={S.historyCard}>
+          <div style={S.historyH}>Streak history · most recent first</div>
+          {streakHistory.map((run, i) => (
+            <div key={i} style={S.historyRow}>
+              <span style={{ ...S.historyLen, color: run.brokenBy ? '#8f8678' : '#0a7c5f' }}>{run.length}</span>
+              <div style={{ flex: 1 }}>
+                <div style={S.historyDates}>{run.startDate} → {run.endDate}</div>
+                <div style={S.historyNote}>
+                  {run.brokenBy
+                    ? `Broken by a non-compliant trade on ${run.brokenBy.date}`
+                    : 'Still active — this is your current streak'}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Open trades strip */}
       {openTrades.length > 0 && (
@@ -860,6 +881,15 @@ const S: Record<string, React.CSSProperties> = {
   streakNum: { fontFamily: "'JetBrains Mono', monospace", fontSize: 34, fontWeight: 600 },
   streakLabel: { fontSize: 12.5, color: '#5d564d', marginBottom: 7 },
   streakSub: { fontSize: 11, color: '#8f8678', marginTop: 6 },
+  streakHeadRow: { display: 'flex', alignItems: 'center', gap: 9, marginBottom: 7 },
+  bestPill: { fontSize: 10.5, fontFamily: "'JetBrains Mono', monospace", color: '#6759c6', background: 'rgba(103,89,198,.1)', padding: '2px 8px', borderRadius: 10, fontWeight: 600 },
+  historyToggle: { background: 'transparent', border: '1px solid rgba(60,40,15,.16)', color: '#5d564d', fontSize: 11, padding: '6px 12px', borderRadius: 6, fontFamily: "'JetBrains Mono', monospace", cursor: 'pointer', alignSelf: 'flex-start' },
+  historyCard: { background: '#fffdf9', border: '1px solid rgba(60,40,15,.08)', borderRadius: 12, padding: '14px 16px', marginBottom: 16, boxShadow: '0 1px 0 rgba(60,40,15,.03)' },
+  historyH: { fontSize: 10.5, fontWeight: 600, color: '#5d564d', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10, fontFamily: "'JetBrains Mono', monospace" },
+  historyRow: { display: 'flex', gap: 12, alignItems: 'flex-start', padding: '9px 0', borderBottom: '1px solid rgba(60,40,15,.05)' },
+  historyLen: { fontFamily: "'JetBrains Mono', monospace", fontSize: 18, fontWeight: 700, minWidth: 28, textAlign: 'center' },
+  historyDates: { fontSize: 11.5, fontFamily: "'JetBrains Mono', monospace", color: '#1a1816' },
+  historyNote: { fontSize: 11.5, color: '#5d564d', marginTop: 2 },
   barTrack: { height: 7, background: '#ede6d8', borderRadius: 20, overflow: 'hidden' },
   barFill: { height: '100%', background: 'linear-gradient(90deg,#0a7c5f,#3aa384)', borderRadius: 20, transition: 'width .4s ease' },
 

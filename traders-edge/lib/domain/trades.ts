@@ -132,3 +132,104 @@ export function shouldAutoLock(t: { status: TradeStatus; closed_at: string | nul
   if (t.status !== 'closed' || !t.closed_at) return false;
   return Date.now() - new Date(t.closed_at).getTime() > LOCK_WINDOW_MS;
 }
+
+// ===== Streak computation =====
+// A trade shape sufficient for streak math — decoupled from the full
+// TradeRow type so this stays easy to test in isolation.
+export type StreakTrade = {
+  id: string;
+  trade_date: string; // YYYY-MM-DD — the REAL trading date, source of truth for order
+  created_at: string; // ISO timestamp — only used as a same-day tiebreaker
+  rule_compliant: boolean;
+  hidden: boolean;
+  status: TradeStatus;
+};
+
+// Chronological order (oldest first), by trade_date rather than created_at.
+// This is the fix for a real bug: sorting by created_at (insert order)
+// misorders any backfilled trade, since a trade entered today with a
+// date from last week has a NEWER created_at than trades logged live in
+// between — which can make a stale non-compliant trade look like the
+// most recent one and wrongly zero out the streak.
+function chronological(trades: StreakTrade[]): StreakTrade[] {
+  return trades
+    .filter((t) => !t.hidden && t.status !== 'superseded' && t.status !== 'open')
+    .slice()
+    .sort((a, b) => {
+      const byDate = a.trade_date.localeCompare(b.trade_date);
+      if (byDate !== 0) return byDate;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
+}
+
+// Current streak: consecutive compliant trades counting back from the
+// most recent, by real trading date. Resets to 0 on any non-compliant
+// trade — this is intentional (see product notes): the goal is proving
+// SUSTAINED discipline, not just accumulating compliant trades with
+// breaks scattered through the history.
+export function computeCurrentStreak(trades: StreakTrade[]): number {
+  const chrono = chronological(trades);
+  let s = 0;
+  for (let i = chrono.length - 1; i >= 0; i--) {
+    if (chrono[i].rule_compliant) s++;
+    else break;
+  }
+  return s;
+}
+
+// Best streak: the longest run of consecutive compliant trades anywhere
+// in the trader's history. Monotonically increases — never resets. This
+// preserves the memory of past discipline even after a live streak breaks.
+export function computeBestStreak(trades: StreakTrade[]): number {
+  const chrono = chronological(trades);
+  let best = 0;
+  let cur = 0;
+  for (const t of chrono) {
+    if (t.rule_compliant) {
+      cur++;
+      if (cur > best) best = cur;
+    } else {
+      cur = 0;
+    }
+  }
+  return best;
+}
+
+export type StreakRun = {
+  length: number;
+  startDate: string;
+  endDate: string;
+  // null = this run is still active (it's the current streak)
+  brokenBy: { date: string; id: string } | null;
+};
+
+// Full streak history: every run of consecutive compliance, most recent
+// first, with what broke each one (or null if it's still live). This is
+// what turns "the number went down" from a confusing silent event into
+// something the trader can actually review and learn from.
+export function computeStreakHistory(trades: StreakTrade[]): StreakRun[] {
+  const chrono = chronological(trades);
+  const runs: StreakRun[] = [];
+  let runStart: string | null = null;
+  let runLen = 0;
+  let lastDate = '';
+
+  for (const t of chrono) {
+    if (t.rule_compliant) {
+      if (runLen === 0) runStart = t.trade_date;
+      runLen++;
+      lastDate = t.trade_date;
+    } else {
+      if (runLen > 0) {
+        runs.push({ length: runLen, startDate: runStart!, endDate: lastDate, brokenBy: { date: t.trade_date, id: t.id } });
+      }
+      runLen = 0;
+      runStart = null;
+    }
+  }
+  // Trailing active run — not yet broken, this is the current live streak.
+  if (runLen > 0) {
+    runs.push({ length: runLen, startDate: runStart!, endDate: lastDate, brokenBy: null });
+  }
+  return runs.reverse();
+}
