@@ -58,6 +58,7 @@ export default function TrackTab({ edge, plan }: { edge: any; plan: string }) {
   const [exit, setExit] = useState('');
   const [size, setSize] = useState('');
   const [riskPct, setRiskPct] = useState('');
+  const [balance, setBalance] = useState('');
   const [riskMode, setRiskMode] = useState<'size' | 'pct'>('size');
   const [compliant, setCompliant] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -94,6 +95,7 @@ export default function TrackTab({ edge, plan }: { edge: any; plan: string }) {
       // Hydrate sticky form defaults from prefs
       if (json.prefs?.lastInstrument && !symbol) setSymbol(json.prefs.lastInstrument);
       if (json.prefs?.lastRiskPct && !riskPct) setRiskPct(String(json.prefs.lastRiskPct));
+      if (json.prefs?.lastBalance && !balance) setBalance(String(json.prefs.lastBalance));
     } catch (e) {
       console.error(e);
     } finally {
@@ -111,11 +113,11 @@ export default function TrackTab({ edge, plan }: { edge: any; plan: string }) {
       entry: +entry, stop: +stop,
       takeProfit: takeProfit ? +takeProfit : null,
       exit: mode === 'closed' && exit ? +exit : null,
-      balance: prefs.lastBalance || 10000,
+      balance: balance ? +balance : 0,
       size: size ? +size : null,
       riskPct: riskMode === 'pct' && riskPct ? +riskPct : null,
     });
-  }, [symbol, direction, entry, stop, takeProfit, exit, size, riskPct, riskMode, mode, prefs.lastBalance]);
+  }, [symbol, direction, entry, stop, takeProfit, exit, size, riskPct, riskMode, mode, balance]);
 
   function resetForm() {
     setEntry(''); setStop(''); setTakeProfit(''); setExit('');
@@ -126,6 +128,9 @@ export default function TrackTab({ edge, plan }: { edge: any; plan: string }) {
     if (!symbol) return showToast('Pick an instrument');
     if (!entry || !stop) return showToast('Entry and stop required');
     if (mode === 'closed' && !exit) return showToast('Exit price required for closed trade');
+    if (riskMode === 'pct' && riskPct && !balance) return showToast('Enter account balance to use risk %');
+    if (riskMode === 'size' && !size) return showToast('Position size required');
+    if (riskMode === 'pct' && !riskPct) return showToast('Risk % required');
 
     setSubmitting(true);
     try {
@@ -139,7 +144,7 @@ export default function TrackTab({ edge, plan }: { edge: any; plan: string }) {
           exit: mode === 'closed' ? +exit : undefined,
           size: size ? +size : undefined,
           riskPct: riskMode === 'pct' && riskPct ? +riskPct : undefined,
-          balance: prefs.lastBalance || 10000,
+          balance: balance ? +balance : undefined,
           confluenceScore: confluence,
           compliant,
           pattern: pattern || undefined,
@@ -316,6 +321,25 @@ export default function TrackTab({ edge, plan }: { edge: any; plan: string }) {
               : <input style={S.field} type="number" step="0.1" value={riskPct} onChange={(e) => setRiskPct(e.target.value)} placeholder="1.0" />
             }
           </div>
+
+          {/* Account balance — only relevant in risk % mode, where position
+              size is derived FROM the balance. Sticky across sessions. */}
+          {riskMode === 'pct' && (
+            <div>
+              <label style={S.lbl}>Account balance ($)</label>
+              <input
+                style={{ ...S.field, ...(riskPct && !balance ? S.fieldWarn : {}) }}
+                type="number"
+                step="1"
+                value={balance}
+                onChange={(e) => setBalance(e.target.value)}
+                placeholder="10000"
+              />
+              {riskPct && !balance && (
+                <div style={S.fieldWarnNote}>Enter your balance — risk % needs it to size the trade.</div>
+              )}
+            </div>
+          )}
 
           {/* Exit (closed mode only) */}
           {mode === 'closed' && (
@@ -931,6 +955,8 @@ const S: Record<string, React.CSSProperties> = {
   confMax: { fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#8f8678', paddingRight: 4 },
 
   riskModeBtn: { background: 'none', border: 'none', color: '#0a7c5f', fontSize: 10.5, padding: 0, fontFamily: "'JetBrains Mono', monospace", cursor: 'pointer', textDecoration: 'underline' },
+  fieldWarn: { borderColor: 'rgba(162,106,24,.5)', background: 'rgba(162,106,24,.05)' },
+  fieldWarnNote: { fontSize: 10.5, color: '#a26a18', marginTop: 4, fontFamily: "'JetBrains Mono', monospace" },
 
   calcPanel: { background: '#f4efe6', border: '1px solid rgba(60,40,15,.08)', borderRadius: 10, padding: '13px 15px', marginBottom: 14 },
   calcH: { fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 700, color: '#8f8678', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 9 },
